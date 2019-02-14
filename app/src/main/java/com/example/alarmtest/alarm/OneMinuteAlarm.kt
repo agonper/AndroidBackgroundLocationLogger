@@ -11,12 +11,8 @@ class OneMinuteAlarm(context: Context) {
     private val timeInterval = 60 * 1000
 
     private val alarmManager: AlarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-    private val alarmIntent: PendingIntent
-
-    init {
-        alarmIntent = Intent(context, AlarmReceiver::class.java).let { intent ->
-            PendingIntent.getBroadcast(context, 0, intent, 0)
-        }
+    private val alarmIntent: PendingIntent = Intent(context, AlarmReceiver::class.java).let { intent ->
+        PendingIntent.getBroadcast(context, 0, intent, 0)
     }
 
     fun schedule() {

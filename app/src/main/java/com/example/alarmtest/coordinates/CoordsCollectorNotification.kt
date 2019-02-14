@@ -48,12 +48,13 @@ class CoordsCollectorNotification(private val context: Context) {
     @SuppressLint("WrongConstant")
     fun setupChannel() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+
         val channel = NotificationChannel(
             notificationChannelId,
             notificationTitle,
             notificationPriority)
-
         channel.description = notificationDescription
+
         val notificationManager = context.getSystemService(NotificationManager::class.java)
         notificationManager.createNotificationChannel(channel)
     }

@@ -3,7 +3,6 @@ package com.example.alarmtest
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
-import com.example.alarmtest.coordinates.Coordinates
 import com.example.alarmtest.coordinates.CoordinatesRepository
 
 class MainViewModel(application: Application): AndroidViewModel(application) {
@@ -11,10 +10,6 @@ class MainViewModel(application: Application): AndroidViewModel(application) {
 
     val coordsCount: LiveData<Long> by lazy {
         coordinatesRepository.count
-    }
-
-    fun store(coords: Coordinates) {
-        coordinatesRepository.save(coords).subscribe()
     }
 
     fun wipeCoords() {

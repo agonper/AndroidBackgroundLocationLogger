@@ -48,10 +48,11 @@ class CoordinatesCollectorSrv: IntentService("CoordinatesCollectorSrv") {
     private fun collectCoordinates() {
         Log.d(tag, "Collecting coords...")
         val completed = obtainCoordinates(3)
-            .timeout(
+            .timeout( // When phone is in deep sleep (doze) GPS is turned off and only latest calculated coordinate is delivered
                 15,
                 TimeUnit.SECONDS,
-                obtainCoordinates(1).timeout(5, TimeUnit.SECONDS)
+                obtainCoordinates(1)
+                    .timeout(5, TimeUnit.SECONDS) // Sometimes latest calculated coordinate is too old and is not delivered
             )
             .doOnNext {coordinates ->
                 Log.d(tag, coordinates.toString())
@@ -63,7 +64,7 @@ class CoordinatesCollectorSrv: IntentService("CoordinatesCollectorSrv") {
             .flatMapCompletable { coordinates ->
                 coordsRepository.save(coordinates)
             }
-            .blockingAwait(15, TimeUnit.SECONDS)
+            .blockingAwait(15, TimeUnit.SECONDS) // If it is saved via network connection can fail
         if (completed) Log.d(tag, "Coordinates collected")
         else Log.d(tag, "Didn't store coordinates!")
     }
