@@ -54,9 +54,14 @@ class CoordinatesCollectorSrv: Service() {
         super.onStartCommand(intent, flags, startId)
         Log.d(tag, "Service started!")
 
-        val message = coordsCollectorHandler.obtainMessage()
-        message.arg1 = startId
-        coordsCollectorHandler.sendMessage(message)
+        if (startId == 1) { // Allow only one coordinates collection task within a time window
+            val message = coordsCollectorHandler.obtainMessage()
+            message.arg1 = startId
+            coordsCollectorHandler.sendMessage(message)
+        } else {
+            Log.d(tag, "Already collecting coordinates!")
+            stopSelf(startId)
+        }
 
         return START_STICKY
     }
