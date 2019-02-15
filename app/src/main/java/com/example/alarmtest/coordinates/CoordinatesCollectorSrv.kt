@@ -1,29 +1,34 @@
 package com.example.alarmtest.coordinates
 
-import android.app.IntentService
+import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.os.*
 import android.util.Log
 import androidx.core.content.ContextCompat
+import io.reactivex.Completable
 import io.reactivex.Observable
-import io.reactivex.android.schedulers.AndroidSchedulers
-import io.reactivex.schedulers.Schedulers
+import io.reactivex.disposables.Disposable
 import java.util.concurrent.TimeUnit
 
-class CoordinatesCollectorSrv: IntentService("CoordinatesCollectorSrv") {
+class CoordinatesCollectorSrv: Service() {
 
     private val tag = javaClass.canonicalName
 
     private val maxCoordsToCollect = 3L
     private val maxTimeBetweenCoords = 10L
+    private val globalTimeout = maxCoordsToCollect * maxTimeBetweenCoords + 1
 
 
     private lateinit var coordsProvider: CoordinatesProvider
     private lateinit var coordsRepository: CoordinatesRepository
 
+    private lateinit var coordsCollectorLooper: Looper
+    private lateinit var coordsCollectorHandler: Handler
 
     override fun onCreate() {
         super.onCreate()
+        Log.d(tag, "Service created!")
 
         val coordsCollectNotification = CoordsCollectorNotification(this)
 
@@ -35,15 +40,29 @@ class CoordinatesCollectorSrv: IntentService("CoordinatesCollectorSrv") {
             coordsCollectNotification.create()
         )
 
-        Log.d(tag, "Service created!")
+        val thread = HandlerThread(
+            "CoordinatesCollectorSrvHT",
+            Process.THREAD_PRIORITY_BACKGROUND
+        )
+        thread.start()
+
+        coordsCollectorLooper = thread.looper
+        coordsCollectorHandler = createCoordsCollectorHandler()
     }
 
-    override fun onHandleIntent(intent: Intent?) {
-        try {
-            collectCoordinates()
-        } catch (e: Exception) {
-            Log.e(tag, "Error: ${e.message}")
-        }
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        super.onStartCommand(intent, flags, startId)
+        Log.d(tag, "Service started!")
+
+        val message = coordsCollectorHandler.obtainMessage()
+        message.arg1 = startId
+        coordsCollectorHandler.sendMessage(message)
+
+        return START_STICKY
+    }
+
+    override fun onBind(intent: Intent?): IBinder? {
+        return null // Service cannot be bound
     }
 
     override fun onDestroy() {
@@ -54,11 +73,35 @@ class CoordinatesCollectorSrv: IntentService("CoordinatesCollectorSrv") {
         super.onDestroy()
     }
 
-    private fun collectCoordinates() {
-        val globalTimeout = maxCoordsToCollect * maxTimeBetweenCoords + 1L
+    private fun createCoordsCollectorHandler(): Handler = object : Handler(coordsCollectorLooper) {
+        override fun handleMessage(msg: Message?) {
+            msg ?: return
+            Log.d(tag, "Collecting coords...")
 
-        Log.d(tag, "Collecting coords...")
-        val completed = acquireCoords()
+            val workId = msg.arg1
+            var timerDisposable: Disposable? = null
+
+            val collectorDisposable = collectCoordinates().subscribe(
+                {
+                    Log.d(tag, "Coordinates collected")
+                    finishWork(workId, timerDisposable)
+                },
+                { e->
+                    Log.d(tag, "Didn't store coordinates!: ${e.message}")
+                    finishWork(workId, timerDisposable)
+                }
+            )
+
+            timerDisposable = Observable.timer(globalTimeout, TimeUnit.SECONDS)
+                .subscribe {
+                    Log.d(tag, "Timed out")
+                    finishWork(workId, collectorDisposable)
+                }
+        }
+    }
+
+    private fun collectCoordinates(): Completable {
+        return acquireCoords()
             .doOnNext { coordinates ->
                 Log.d(tag, coordinates.toString())
             }
@@ -69,17 +112,20 @@ class CoordinatesCollectorSrv: IntentService("CoordinatesCollectorSrv") {
             .flatMapCompletable { coordinates ->
                 coordsRepository.save(coordinates)
             }
-            .blockingAwait(globalTimeout, TimeUnit.SECONDS)
-        if (completed) Log.d(tag, "Coordinates collected")
-        else Log.d(tag, "Didn't store coordinates!")
     }
 
     private fun acquireCoords(): Observable<Coordinates> {
-        return coordsProvider.coords
-            .subscribeOn(AndroidSchedulers.mainThread()) // Get GPS coordinates in main thread
+        return coordsProvider.coords(coordsCollectorLooper)
             .take(maxCoordsToCollect)
-            .timeout(maxTimeBetweenCoords, TimeUnit.SECONDS,
-                Schedulers.single(), Observable.empty()) // GPS can be sleeping
+            .timeout(maxTimeBetweenCoords, TimeUnit.SECONDS, Observable.empty()) // GPS can be in power-saving mode
+    }
+
+    private fun finishWork(workId: Int, complementaryTask: Disposable?) {
+        complementaryTask?.apply {
+            if (!isDisposed) dispose()
+        }
+        stopSelf(workId)
+        Log.d(tag, "Finished work with id: $workId")
     }
 
     companion object {

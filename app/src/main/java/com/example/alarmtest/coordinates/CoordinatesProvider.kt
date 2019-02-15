@@ -2,6 +2,7 @@ package com.example.alarmtest.coordinates
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.os.Looper
 import com.google.android.gms.location.*
 import io.reactivex.Observable
 import io.reactivex.ObservableEmitter
@@ -11,10 +12,10 @@ class CoordinatesProvider(context: Context) {
 
     private val locationClient = LocationServices.getFusedLocationProviderClient(context) as FusedLocationProviderClient
 
-    val coords: Observable<Coordinates> by lazy {
-        Observable.create { emitter: ObservableEmitter<Coordinates>->
+    fun coords(looper: Looper): Observable<Coordinates> {
+        return Observable.create { emitter: ObservableEmitter<Coordinates>->
             val callback = createLocationCallback(emitter)
-            locationClient.requestLocationUpdates(locationRequest, callback, null)
+            locationClient.requestLocationUpdates(locationRequest, callback, looper)
             emitter.setCancellable { locationClient.removeLocationUpdates(callback) }
         }
     }
