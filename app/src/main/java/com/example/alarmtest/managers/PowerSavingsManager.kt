@@ -8,14 +8,14 @@ import android.os.Build
 import android.os.PowerManager
 import android.provider.Settings
 
-class PowerManager(private val context: Context) {
+class PowerSavingsManager(private val context: Context) {
 
     private val packageName = "com.example.alarmtest"
 
     private val powerManager: PowerManager =  context.getSystemService(Context.POWER_SERVICE) as PowerManager
 
     @SuppressLint("BatteryLife")
-    fun requestSavingsDeactivation() {
+    fun requestDeactivation() {
         if (Build.VERSION.SDK_INT < 23) return
         if (!powerManager.isIgnoringBatteryOptimizations(packageName)) {
             Intent(

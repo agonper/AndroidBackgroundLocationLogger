@@ -6,6 +6,7 @@ import android.content.Intent
 import android.os.*
 import android.util.Log
 import androidx.core.content.ContextCompat
+import com.example.alarmtest.managers.WakeManager
 import io.reactivex.Completable
 import io.reactivex.Observable
 import io.reactivex.disposables.Disposable
@@ -19,6 +20,7 @@ class CoordinatesCollectorSrv: Service() {
     private val maxTimeBetweenCoords = 10L
     private val globalTimeout = maxCoordsToCollect * maxTimeBetweenCoords + 1
 
+    private lateinit var wakeLock: PowerManager.WakeLock
 
     private lateinit var coordsProvider: CoordinatesProvider
     private lateinit var coordsRepository: CoordinatesRepository
@@ -30,15 +32,18 @@ class CoordinatesCollectorSrv: Service() {
         super.onCreate()
         Log.d(tag, "Service created!")
 
-        val coordsCollectNotification = CoordsCollectorNotification(this)
+        wakeLock = WakeManager(this).partialWakeLock()
+        wakeLock.acquire(globalTimeout * 1100)
 
-        coordsProvider = CoordinatesProvider(this)
-        coordsRepository = CoordinatesRepository(this)
+        val coordsCollectNotification = CoordsCollectorNotification(this)
 
         startForeground(
             coordsCollectNotification.notificationId,
             coordsCollectNotification.create()
         )
+
+        coordsProvider = CoordinatesProvider(this)
+        coordsRepository = CoordinatesRepository(this)
 
         val thread = HandlerThread(
             "CoordinatesCollectorSrvHT",
@@ -73,7 +78,7 @@ class CoordinatesCollectorSrv: Service() {
     override fun onDestroy() {
         val removingNotification = true
         stopForeground(removingNotification)
-
+        wakeLock.release()
         Log.d(tag, "Service destroyed!")
         super.onDestroy()
     }

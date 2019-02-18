@@ -9,7 +9,7 @@ import androidx.lifecycle.ViewModelProviders
 import com.example.alarmtest.alarm.OneMinuteAlarm
 import com.example.alarmtest.coordinates.CoordsCollectorNotification
 import com.example.alarmtest.managers.PermissionsManager
-import com.example.alarmtest.managers.PowerManager
+import com.example.alarmtest.managers.PowerSavingsManager
 
 class MainActivity : AppCompatActivity() {
 
@@ -24,7 +24,7 @@ class MainActivity : AppCompatActivity() {
         countText = findViewById(R.id.countText)
 
         PermissionsManager(this).askLocationAccess()
-        PowerManager(this).requestSavingsDeactivation()
+        PowerSavingsManager(this).requestDeactivation()
         CoordsCollectorNotification(this).setupChannel()
 
         OneMinuteAlarm(this).schedule()
