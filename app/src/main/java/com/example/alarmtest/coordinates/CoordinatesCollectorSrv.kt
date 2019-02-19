@@ -127,7 +127,8 @@ class CoordinatesCollectorSrv: Service() {
     private fun acquireCoords(): Observable<Coordinates> {
         return coordsProvider.coords(coordsCollectorLooper)
             .take(maxCoordsToCollect)
-            .timeout(maxTimeBetweenCoords, TimeUnit.SECONDS, Observable.empty()) // GPS can be in power-saving mode
+            .timeout(maxTimeBetweenCoords, TimeUnit.SECONDS,
+                coordsProvider.lastKnownCoords.toObservable()) // GPS can be in power-saving mode
     }
 
     private fun finishWork(workId: Int, complementaryTask: Disposable?) {
