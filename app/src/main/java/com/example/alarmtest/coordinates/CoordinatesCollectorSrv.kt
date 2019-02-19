@@ -17,7 +17,7 @@ class CoordinatesCollectorSrv: Service() {
     private val tag = javaClass.canonicalName
 
     private val maxCoordsToCollect = 3L
-    private val maxTimeBetweenCoords = 10L
+    private val maxTimeBetweenCoords = 20L
     private val globalTimeout = maxCoordsToCollect * maxTimeBetweenCoords + 1
 
     private lateinit var wakeLock: PowerManager.WakeLock
