@@ -1,6 +1,7 @@
 package com.example.alarmtest
 
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
@@ -13,6 +14,8 @@ import com.example.alarmtest.managers.PermissionsManager
 import com.example.alarmtest.managers.PowerSavingsManager
 
 class MainActivity : AppCompatActivity() {
+
+    private val tag = javaClass.canonicalName
 
     private lateinit var countText: TextView
 
@@ -28,7 +31,10 @@ class MainActivity : AppCompatActivity() {
         PowerSavingsManager(this).requestDeactivation()
         CoordsCollectorNotification(this).setupChannel()
 
-        OneMinuteAlarm(this).schedule()
+        val oneMinuteAlarm = OneMinuteAlarm(this)
+        Log.d(tag, "Alarm scheduled (pre): ${oneMinuteAlarm.isUp}")
+        oneMinuteAlarm.schedule()
+        Log.d(tag, "Alarm scheduled (post): ${oneMinuteAlarm.isUp}")
         AlarmWatchdog(this).schedule()
 
         model = ViewModelProviders.of(this).get(MainViewModel::class.java)

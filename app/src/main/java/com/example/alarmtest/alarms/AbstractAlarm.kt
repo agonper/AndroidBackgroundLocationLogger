@@ -10,8 +10,9 @@ abstract class AbstractAlarm(private val context: Context, receiver: Class<out A
     protected val alarmManager: AlarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
     private val receiverIntent = Intent(context, receiver)
-    protected val receiverPendingIntent: PendingIntent =
+    protected val receiverPendingIntent: PendingIntent by lazy {
         PendingIntent.getBroadcast(context, 0, receiverIntent, 0)
+    }
 
     fun schedule() {
         alarmManager.cancel(receiverPendingIntent)

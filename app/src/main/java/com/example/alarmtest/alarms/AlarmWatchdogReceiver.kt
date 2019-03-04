@@ -15,6 +15,7 @@ class AlarmWatchdogReceiver: BroadcastReceiver() {
         context?.let {ctx ->
             val alarm = OneMinuteAlarm(ctx)
             if (!alarm.isUp) {
+                Log.d(tag, "Alarm was down! Scheduling")
                 alarm.schedule()
             }
         }
